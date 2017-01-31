@@ -11,6 +11,7 @@ import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.ColorSensor;
 import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.OpticalDistanceSensor;
 import com.qualcomm.robotcore.hardware.GyroSensor;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
@@ -49,7 +50,9 @@ public class Sensors extends LinearOpMode {
 
     //Declared Objects
     DcMotor leftMotor   = null;
-    DcMotor  rightMotor  = null;
+    DcMotor rightMotor  = null;
+    //DcMotor leftShooter = null;
+    //DcMotor rightShooter = null;
     OpticalDistanceSensor odsSensor;
     ColorSensor colorSensor;
     ModernRoboticsI2cRangeSensor rangeSensor;
@@ -63,7 +66,10 @@ public class Sensors extends LinearOpMode {
     int xVal, yVal, zVal = 0;
     int heading = 0;
     int angleZ = 0;
-    boolean stanga = false;
+    int leftMotorPos;
+    int rightMotorPos;
+    boolean red = false;
+    boolean poz = false;
     int ok = 1;
 
     String format(OpenGLMatrix transformationMatrix) {
@@ -276,21 +282,83 @@ public class Sensors extends LinearOpMode {
         gyro = (ModernRoboticsI2cGyro) hardwareMap.gyroSensor.get("gyro");
         touchSensor = hardwareMap.touchSensor.get("sensor_touch");
 
-        //Setting initial power and rutting without encoder mode
+        //Setting initial power
+        leftMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        rightMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        //leftShooter.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        //rightShooter.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         leftMotor.setPower(0);
         rightMotor.setPower(0);
-        leftMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
-        rightMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        //leftShooter.setPower(0);
+        //rightShooter.setPower(0);
 
         // bPrevState and bCurrState represent the previous and current state of the button.
-        boolean bPrevState = false;
-        boolean bCurrState = false;
 
-        if (touchSensor.isPressed()) {
+        boolean bPrevState = false ;
+        boolean bCurrState = false ;
 
-            stanga = !stanga;
+        if(touchSensor.isPressed())
+            bCurrState = true ;
+
+        if (bCurrState == true && bCurrState!=bPrevState) {
+
+            red = !red;
+
 
         }
+        if (red) {
+            telemetry.addLine("ECHIPA ROSIE");
+            telemetry.addLine();
+            telemetry.addLine();
+            telemetry.addLine();
+            telemetry.update();
+        }
+        else
+
+        {
+
+            telemetry.addLine("ECHIPA ALBASTRA");
+            telemetry.addLine();
+            telemetry.addLine();
+            telemetry.addLine();
+            telemetry.update();
+
+        }
+
+        sleep(2000);
+
+        bPrevState = false;
+        bCurrState = touchSensor.isPressed();
+
+        if(touchSensor.isPressed())
+            bCurrState = true ;
+
+        if (bCurrState == true && bCurrState!=bPrevState) {
+
+            poz = !poz;
+
+
+        }
+        if (poz) {
+            telemetry.addLine("POZITIA 1");
+            telemetry.addLine();
+            telemetry.addLine();
+            telemetry.addLine();
+        }
+        else
+
+        {
+
+            telemetry.addLine("POZITIA 2");
+            telemetry.addLine();
+            telemetry.addLine();
+            telemetry.addLine();
+
+        }
+
+
+
+
         boolean bLedOn = false;
         colorSensor.enableLed(bLedOn);
 
@@ -400,6 +468,7 @@ public class Sensors extends LinearOpMode {
                 telemetry.addData("3", "Y av. %03d", yVal);
                 telemetry.addData("4", "Z av. %03d", zVal);
 
+
                 // change the background color to match the color detected by the RGB sensor.
                 // pass a reference to the hue, saturation, and value array as an argument
                 // to the HSVToColor method.
@@ -410,39 +479,55 @@ public class Sensors extends LinearOpMode {
                 });
 
                 telemetry.update();
+            leftMotor.setMode(DcMotor.RunMode.RESET_ENCODERS);
+            rightMotor.setMode(DcMotor.RunMode.RESET_ENCODERS);
+            leftMotorPos = leftMotor.getCurrentPosition();
+            rightMotorPos = rightMotor.getCurrentPosition();
 
             //Beacon Finder
-            if (!stanga && ok == 1) {
+            if (!red && !poz && ok == 1) {
 
-                if (heading >= 360-40 && heading <= 360-50)
+                    rightMotor.setTargetPosition(1440/3);
+                    leftMotor.setTargetPosition(1440/3);
+                rightMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+                leftMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+                while (leftMotorPos < 1440/3 && rightMotorPos < 1440/3)
                 {
-
-                    leftMotor.setPower(0.25);
-                    rightMotor.setPower(0.25);
-
-                }
-                else {
-
-                    ok = 0;
-
-                }
-            }
-
-            if (stanga && ok == 1) {
-
-                if (heading >= 40 && heading <= 50)
-                {
-
                     rightMotor.setPower(0.25);
                     leftMotor.setPower(0.25);
 
+                    leftMotorPos = leftMotor.getCurrentPosition();
+                    rightMotorPos = rightMotor.getCurrentPosition();
                 }
-                else {
-
-                    ok = 0;
-
-                }
+                rightMotor.setPower(0);
+                leftMotor.setPower(0);
+                ok = 0;
+                rightMotor.setDirection(DcMotor.Direction.REVERSE);
             }
+
+            if (red && ok == 1) {
+
+                leftMotor.setDirection(DcMotor.Direction.REVERSE);
+                rightMotor.setDirection(DcMotor.Direction.REVERSE);
+                rightMotor.setTargetPosition(1440/3);
+                leftMotor.setTargetPosition(1440/3);
+                rightMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+                leftMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+                while (leftMotorPos < 1440/3 && rightMotorPos < 1440/3)
+                {
+                    rightMotor.setPower(0.25);
+                    leftMotor.setPower(0.25);
+
+                    leftMotorPos = leftMotor.getCurrentPosition();
+                    rightMotorPos = rightMotor.getCurrentPosition();
+                }
+                rightMotor.setPower(0);
+                leftMotor.setPower(0);
+                ok = 0;
+                leftMotor.setDirection(DcMotor.Direction.REVERSE);
+            }
+
+
 
                 if (isStopRequested()) {
 
@@ -456,4 +541,6 @@ public class Sensors extends LinearOpMode {
             }
 
         }
+
+
     }
